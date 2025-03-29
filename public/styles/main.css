@@ -1,0 +1,79 @@
+body {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background: #000000;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior: none;
+}
+
+canvas {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+
+aside li {
+    padding: 4px 20px;
+}
+
+aside li a {
+    padding: 4px 6px;
+    font-size: 1rem;
+    color: #79c0ff;
+    text-decoration: none;
+}
+
+aside li a:hover {
+    text-decoration: underline;
+}
+
+nav ol:first-of-type,
+nav ul:first-of-type {
+    margin: 0;
+}
+
+aside ul {
+    width: 100%;
+    list-style: none;
+    padding: 0;
+}
+
+/* Guide Page */
+.playground-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+#playground-menu {
+    width: 100vw;
+    background-color: #21232c;
+}
+
+#playground-content {
+    width: 100vw;
+}
+
+@media (min-width: 768px) {
+    .playground-layout {
+        flex-direction: row;
+    }
+
+    #playground-content {
+        width: calc(100vw - 250px);
+    }
+
+    #playground-menu {
+        width: 250px;
+    }
+
+    #playground-menu nav {
+        position: sticky;
+        top: 1rem;
+    }
+
+    canvas {
+        width: calc(100vw - 250px);
+    }
+}

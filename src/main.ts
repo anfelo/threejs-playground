@@ -1,30 +1,55 @@
-import * as THREE from "three";
+import { LightingModelScene } from "./lighting-model";
+import { Scene } from "./types";
 
-import "./style.css";
+let currentItem: string | null = "";
+const initialItem = "lighting-model";
+let currentScene: Scene | null;
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000,
-);
+const items = [
+    {
+        title: "Lighting Model",
+        slug: "lighting-model",
+        onClick: async () => {
+            currentScene = new LightingModelScene();
+            currentScene.init();
+        }
+    }
+];
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setAnimationLoop(animate);
-document.body.appendChild(renderer.domElement);
+document.querySelector("#playground-menu nav")!.innerHTML = `
+    <ul>
+        ${items.map(item => `<li><a href="#" class="menu-item" data-slug="${item.slug}">${item.title}</a></li>`).join("")}
+    </ul>
+`;
 
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+document.querySelectorAll(".menu-item").forEach(menuItem => {
+    menuItem.addEventListener("click", () => {
+        const slug = (menuItem as HTMLElement).dataset.slug;
+        selectMenuItem(slug || null);
+    });
+});
 
-camera.position.z = 5;
+function selectMenuItem(itemSlug: string | null) {
+    if (currentItem === itemSlug) {
+        return;
+    }
 
-function animate() {
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
+    if (!itemSlug) {
+        return;
+    }
 
-  renderer.render(scene, camera);
+    if (currentScene) {
+        currentScene.destroy();
+        currentScene = null;
+    }
+
+    const item = items.find(i => i.slug === itemSlug);
+
+    if (item) {
+        currentItem = itemSlug;
+
+        item.onClick();
+    }
 }
+
+selectMenuItem(initialItem);''
