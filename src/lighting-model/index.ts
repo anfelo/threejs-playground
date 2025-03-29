@@ -75,7 +75,7 @@ export class LightingModelScene implements Scene {
         loader.setPath("/models/");
         loader.load("suzanne.glb", gltf => {
             gltf.scene.traverse(c => {
-                c.material = material;
+                (c as THREE.Mesh).material = material;
             });
             this.scene.add(gltf.scene);
         });
