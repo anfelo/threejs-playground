@@ -7,8 +7,64 @@ const vertexShader = `
 varying vec3 vNormal;
 varying vec3 vPosition;
 
+uniform float time;
+uniform int easingId;
+
+float inverseLerp(float v, float minValue, float maxValue) {
+    return (v - minValue) / (maxValue - minValue);
+}
+
+float remap(float v, float inMin, float inMax, float outMin, float outMax) {
+    float t = inverseLerp(v, inMin, inMax);
+    return mix(outMin, outMax, t);
+}
+
+float easeOutBounce(float x) {
+    const float n1 = 7.5625;
+    const float d1 = 2.75;
+
+    if (x < 1.0 / d1) {
+        return n1 * x * x;
+    } else if (x < 2.0 / d1) {
+        x -= 1.5 / d1;
+        return n1 * x * x + 0.75;
+    } else if (x < 2.5 / d1) {
+        x -= 2.25 / d1;
+        return n1 * x * x + 0.9375;
+    } else {
+        x -= 2.625 / d1;
+        return n1 * x * x + 0.984375;
+    }
+}
+
+float easeInBounce(float x) {
+    return 1.0 - easeOutBounce(1.0 - x);
+}
+
+float easeInOutBounce(float x) {
+    return x < 0.5
+        ? (1.0 - easeOutBounce(1.0 - 2.0 * x)) / 2.0
+        : (1.0 + easeOutBounce(2.0 * x - 1.0)) / 2.0;
+}
+
 void main() {
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec3 localSpacePosition = position;
+
+    float easing = 1.0;
+    switch (easingId) {
+        case 0:
+            easing = easeInBounce(clamp(time - 1.0, 0.0, 1.0));
+            break;
+        case 1:
+            easing = easeOutBounce(clamp(time - 1.0, 0.0, 1.0));
+            break;
+        case 2:
+            easing = easeInOutBounce(clamp(time - 1.0, 0.0, 1.0));
+            break;
+    }
+    localSpacePosition *= easing;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(localSpacePosition, 1.0);
     vNormal = (modelMatrix * vec4(normal, 0.0)).xyz;
     vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
 }
@@ -112,7 +168,7 @@ void main() {
 }
 `;
 
-export class LightingModelScene implements Scene {
+export class EasingFunctionsScene implements Scene {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     uniforms: { [uniform: string]: THREE.IUniform<any> } = {};
@@ -124,6 +180,7 @@ export class LightingModelScene implements Scene {
     gui = new dat.GUI();
     uiState = {
         enableAxesHelper: false,
+        easingFunction: "easeInBounce",
         // Ambient
         ambientFactor: 0.0,
         ambientColor: [128, 128, 128],
@@ -148,7 +205,12 @@ export class LightingModelScene implements Scene {
         fresnelIntensity: 2.0
     };
 
+    easingFunctions = ["easeInBounce", "easeOutBounce", "easeInOutBounce"];
+
     axesHelper: THREE.AxesHelper | null = null;
+
+    totalTime: number = 0.0;
+    clock = new THREE.Clock();
 
     constructor() {}
 
@@ -217,6 +279,12 @@ export class LightingModelScene implements Scene {
 
     async setupProject(): Promise<void> {
         this.uniforms = {
+            time: {
+                value: 0.0
+            },
+            easingId: {
+                value: 0
+            },
             specMap: {
                 value: this.scene.background
             },
@@ -276,6 +344,12 @@ export class LightingModelScene implements Scene {
     }
 
     private animate(_time: DOMHighResTimeStamp, _frame: XRFrame): void {
+        const elapsedTime = this.clock.getElapsedTime();
+        this.uniforms.time.value = elapsedTime;
+
+        const easingId = this.easingFunctions.indexOf(this.uiState.easingFunction);
+        this.uniforms.easingId.value = easingId;
+
         this.uniforms.ambientColor.value = this.uiState.ambientColorUnit;
         this.uniforms.ambientFactor.value = this.uiState.ambientFactor;
 
@@ -319,36 +393,9 @@ export class LightingModelScene implements Scene {
             }
         });
 
-        const f1 = this.gui.addFolder("Ambient");
-        f1.add(this.uiState, "ambientFactor").min(0.0).max(1.0).step(0.01);
-        f1.addColor(this.uiState, "ambientColor").onChange(newColor => {
-            this.uiState.ambientColorUnit = newColor.map((value: number) => value / 255);
+        const f1 = this.gui.addFolder("Easing Functions");
+        f1.add(this.uiState, "easingFunction", this.easingFunctions).onChange(() => {
+            this.clock = new THREE.Clock();
         });
-
-        const f2 = this.gui.addFolder("Hemi");
-        f2.add(this.uiState, "hemiFactor").min(0.0).max(1.0).step(0.01);
-        f2.addColor(this.uiState, "hemiSkyColor").onChange(newColor => {
-            this.uiState.hemiSkyColorUnit = newColor.map((value: number) => value / 255);
-        });
-        f2.addColor(this.uiState, "hemiGroundColor").onChange(newColor => {
-            this.uiState.hemiGroundColorUnit = newColor.map((value: number) => value / 255);
-        });
-
-        const f3 = this.gui.addFolder("Diffuse");
-        f3.add(this.uiState, "diffuseFactor").min(0.0).max(1.0).step(0.01);
-        f3.addColor(this.uiState, "diffuseColor").onChange(newColor => {
-            this.uiState.diffuseColorUnit = newColor.map((value: number) => value / 255);
-        });
-
-        const f4 = this.gui.addFolder("Phong Specular");
-        f4.add(this.uiState, "phongFactor").min(0.0).max(1.0).step(0.01);
-        f4.add(this.uiState, "phongShininess").min(0.0).max(50).step(0.01);
-
-        const f5 = this.gui.addFolder("IBL Specular");
-        f5.add(this.uiState, "iblFactor").min(0.0).max(1.0).step(0.01);
-
-        const f6 = this.gui.addFolder("Fresnel Specular");
-        f6.add(this.uiState, "fresnelFactor").min(0.0).max(1.0).step(0.01);
-        f6.add(this.uiState, "fresnelIntensity").min(0.0).max(5.0).step(0.01);
     }
 }

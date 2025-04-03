@@ -1,8 +1,9 @@
+import { EasingFunctionsScene } from "./easing-functions";
 import { LightingModelScene } from "./lighting-model";
 import { Scene } from "./types";
 
 let currentItem: string | null = "";
-const initialItem = "lighting-model";
+const initialItem = "easing-functions";
 let currentScene: Scene | null;
 
 const items = [
@@ -11,6 +12,14 @@ const items = [
         slug: "lighting-model",
         onClick: async () => {
             currentScene = new LightingModelScene();
+            currentScene.init();
+        }
+    },
+    {
+        title: "Easing Functions",
+        slug: "easing-functions",
+        onClick: async () => {
+            currentScene = new EasingFunctionsScene();
             currentScene.init();
         }
     }
@@ -52,4 +61,4 @@ function selectMenuItem(itemSlug: string | null) {
     }
 }
 
-selectMenuItem(initialItem);''
+selectMenuItem(initialItem);
