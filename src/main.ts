@@ -1,6 +1,7 @@
 import { EasingFunctionsScene } from "./easing-functions";
 import { LightingModelScene } from "./lighting-model";
 import { Scene } from "./types";
+import { WarpedSphereScene } from "./warped-sphere";
 
 let currentItem: string | null = "";
 const initialItem = "easing-functions";
@@ -20,6 +21,14 @@ const items = [
         slug: "easing-functions",
         onClick: async () => {
             currentScene = new EasingFunctionsScene();
+            currentScene.init();
+        }
+    },
+    {
+        title: "Warped Sphere",
+        slug: "warped-sphere",
+        onClick: async () => {
+            currentScene = new WarpedSphereScene();
             currentScene.init();
         }
     }
